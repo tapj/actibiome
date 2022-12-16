@@ -415,8 +415,8 @@ pi_theta$cluster <- as.character(pi_theta$cluster)
 ```{r,message=F,warning=F}
 
 set.seed(seeds)
-
-fit_genus_k1 <- parallel::mclapply(1:1, dmn, count=count, verbose=FALSE, mc.cores=12)
+source("mclapply_hack.R")
+fit_genus_k1 <- mclapply.hack(1:1, dmn, count=count, verbose=FALSE, mc.cores = 4)
 
 ```
 
@@ -535,9 +535,9 @@ distribution <- enterotype %>%
   table(.) %>%
   data.frame(.)
 
-distribution$. <- as.character(distribution$.)
+distribution$bifidotype <- as.character(distribution$bifidotype)
 
-distr_clusters <- ggplot(distribution, aes(x = ., y = Freq, fill= .)) +  # Plot with values on top
+distr_clusters <- ggplot(distribution, aes(x = bifidotype, y = Freq, fill= bifidotype)) +  # Plot with values on top
   geom_bar(stat = "identity") +
   geom_text(aes(label = Freq, vjust=1.5),
             size=5,
@@ -545,7 +545,7 @@ distr_clusters <- ggplot(distribution, aes(x = ., y = Freq, fill= .)) +  # Plot 
   labs( y = "Subject count", x = "Bifidobacterium based gut microbiome partitions") +
   theme_classic() +
   scale_fill_brewer("", type="qual", palette=2) +
-  scale_x_discrete(limits = as.character(1:max(distribution$.))) +
+  scale_x_discrete(limits = as.character(1:max(distribution$bifidotype))) +
   ylab("number of individuals") +
   guides(fill=FALSE) + annotate("text", x=7, y=700, label="(undetected\nbifid\npartition)", size=4)
 
@@ -599,7 +599,7 @@ rownames(matrix_int) <- gsub("Bifidobacterium","B. ",rownames(matrix_int))
 
 my_palette <- colorRampPalette(c("white", "yellow", "red"))(n = 400)
 
-my_palette <- viridis_pal()
+my_palette <- viridis::viridis_pal()
 
 col_breaks = c(seq(0.81,1,length=100), # for red
 seq(0,0.8,length=100),  # for yellow
@@ -631,7 +631,7 @@ bif_DMM_alpha_weight_df$carpet %>%
   ggplot() + geom_tile(aes(x=Var1,y=Var2,fill=10^value)) +
   geom_text(aes(x=Var1,y=Var2,label=round(10^value,4))) +
   scale_fill_viridis_c("DMM model\nalpha weights", trans="log10") +
-  xlab("Bifidobacterium based gut micrbiome partitions") + 
+  xlab("Bifidobacterium based gut microbiome partitions") + 
   ylab(expression(paste(italic("Bifidobacterium"), " species"))) +
   theme_classic() +
   theme(axis.text.y = element_text(face="italic")) -> bif_DMM_alpha_weight_plot
@@ -645,12 +645,15 @@ bif_DMM_alpha_weight_plot
 
 
 ```{r fig.height=5, fig.width=14}
+library(patchwork)
 
 ((criteria_dmm_plot /
 
 distr_clusters) |
 
 bif_DMM_alpha_weight_plot) + plot_annotation(tag_levels = "A")
+
+ggsave("figures/figure1_dmm_distributions_heatmap.pdf")
 
 ```
 
@@ -1273,11 +1276,11 @@ sampleMetadata %>%
   geom_bar(aes(x=as.character(bifidotype), y=value, fill=study_name), stat="identity", position = "dodge") +
   theme_classic() +
   scale_y_continuous("% of individuals",labels=scales::percent) +
-  xlab("Bididobacterium-based gut microbiome partitions") +
+  xlab("Bifidobacterium-based gut microbiome partitions") +
   scale_fill_brewer("", type="qual", palette = 3)
   
 
-ggsave("partitions_bif_studies.pdf")
+ggsave("figures/partitions_bif_studies.pdf")
 
 ```
 

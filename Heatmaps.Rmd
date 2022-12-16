@@ -15,7 +15,7 @@ library(microbiome)
 library(phyloseq)
 library(ggpubr)
 library(dplyr)
-library(SpiecEasi)  
+#library(SpiecEasi)  
 library(data.table)
 library(microbiomeutilities)
 library(viridis)
@@ -322,7 +322,7 @@ heat_western
 ```{r,message=F,warning=F, fig.height = 9, fig.width = 5}
 
 figure <- ggarrange(heat_western, heat_age, heat_disease,
-                    labels = c("D","E","F"),
+                    labels = c("A","B","C"),
                     ncol =1,
                     nrow = 3,
                     common.legend = TRUE,
@@ -330,6 +330,120 @@ figure <- ggarrange(heat_western, heat_age, heat_disease,
 
 annotate_figure(figure, top = text_grob("Bifidobacterium species prevalence", size = 18))
 #figure
+
+ggsave("figures/heatmap_prevalence.pdf")
+
+```
+
+
+```{r}
+
+heatmap_phylo_prevalence_dev <- function(category, x, order, physeq_norm){
+  
+  map <- data.frame(physeq_norm@sam_data) %>%
+    rownames_to_column(.,"sample_id") %>%
+    select(category, sample_id)
+  
+
+  tax <- data.frame(physeq_norm@tax_table) %>%
+    rownames_to_column(.,"tax") %>%
+    select(tax)
+    
+  #rownames(prevalence_group_mean) <- gsub(".", "|", rownames(prevalence_group_mean))
+
+  prevalence_group_mean <- data.frame(t(physeq_norm@otu_table)) %>%
+    rownames_to_column(.,"sample_id") %>%
+    merge(.,map, by="sample_id") %>%
+    select(-sample_id) %>%
+    group_by_at(category) %>%
+    summarise_all(., funs(n(.>0))) %>%
+    column_to_rownames(var = category) %>%
+    t(.) %>%
+    data.frame()
+  
+  rownames(prevalence_group_mean) <- gsub("\\.", "\\|", rownames(prevalence_group_mean))
+
+  
+  prevalence_group_mean <- prevalence_group_mean %>%
+    rownames_to_column(.,"tax") %>%
+    merge(., tax, by="tax") %>%
+    column_to_rownames(.,var='tax')
+
+  
+  ## on va regrouper
+
+  
+  rownames(map) <- NULL
+  prevalence_group_mean <- otu_table(data.frame(prevalence_group_mean), taxa_are_rows = TRUE)
+  mapp <- data.frame(category = order, fill = order) %>%
+    column_to_rownames(.,var='category')
+  
+  return(prevalence_group_mean)
+  
+      ## change taxa species names Bifidobacterium -> B.
+  taxa_renamed <- data.frame(physeq_norm@tax_table)
+  taxa_renamed$Species <- gsub("Bifidobacterium", "B.",taxa_renamed$Species)
+  taxa_renamed <- as.matrix(taxa_renamed)
+  taxa_renamed <- tax_table(taxa_renamed)
+
+
+  
+  phy <- phyloseq(prevalence_group_mean, taxa_renamed, sample_data(mapp))
+  
+
+  phy <- get_top_taxa(phy, 10, discard_other = TRUE)
+
+  p <- plot_heatmap(phy,
+                    taxa.label = "Species", taxa.order = "Species", 
+                    low="beige", high="red", na.value="beige",sample.order = order,
+                    #trans = identity_trans(),
+                    trans = trans_new(name = "test", transform = function(x) x,
+                              inverse = function(x) x,
+                              domain = c(0, 0.9)),
+                    title = x)
+
+  #p$labels$fill <- expression('Prevalence')
+  p$labels$fill <- ""
+  p$labels$x <- ""
+  p$labels$y <- ""
+  #p$data$Species <- gsub("Bifidobacterium", "B.",p$data$Species)
+
+  
+  #p
+
+}
+
+
+heatmap_phylo_prevalence_dev("age_category", "age category", category_age, physeq_norm = subset_samples(physeq_norm, !is.na(age_category)))
+
+```
+
+
+
+```{r}
+
+ map <- data.frame(physeq_norm@sam_data) %>%
+    rownames_to_column(.,"sample_id") %>%
+    select(age_category, sample_id)
+  
+
+  tax <- data.frame(physeq_norm@tax_table) %>%
+    rownames_to_column(.,"tax") %>%
+    select(tax)
+    
+  #rownames(prevalence_group_mean) <- gsub(".", "|", rownames(prevalence_group_mean))
+
+  prevalence_group_mean <- data.frame(t(physeq_norm@otu_table)) %>%
+    rownames_to_column(.,"sample_id") %>%
+    merge(.,map, by="sample_id") %>%
+    #select(-sample_id) %>%
+    group_by_at(age_category) %>%
+    summarise_all(., funs(n(.>0))) %>%
+    column_to_rownames(var = category) %>%
+    t(.) %>%
+    data.frame()
+
+
 
 ```
 

@@ -15,7 +15,7 @@ The user may execute the code in the same order as this file.
 - curated_v3_otu_tax.rda : the CMD raw data.
 
 
----- Projet-1.Rmd			input	 curated_v3_otu_tax.rda 
+---- Desc_Stat.Rmd			input	 curated_v3_otu_tax.rda 
 
 					- filtering the CMD data
 					- basic exploratory/statistical analyses
@@ -150,7 +150,7 @@ sample_metadata_msp.xlsx : metadata MI
 
 				output  df_healthy_msp.csv
 
-- df_healthy_msp.csv : heatmap MSP X Subjects : contains the counts of 4 phage eggnogs (B. bifidum)
+- df_healthy_msp.csv : heatmap MSP X Subjects : contains the counts of  eggnogs phage related (B. bifidum)
 
 
 ---- MI_MSP_exploration_simplified.Rmd		input 	are located in data-raw
