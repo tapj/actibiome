@@ -126,6 +126,8 @@ res_glob <- results(dds_res1, alpha=0.05)
 
 signif_genera <- rownames(res_glob[which(res_glob$padj<0.05),])
 
+save(dds_res1, file="dds_res1.rda")
+
 ```
 
 ## Deseq
@@ -166,7 +168,7 @@ for(elem in 1:ncol(co)){ # Loop on comparisons
   output_baseMean[,elem] <- res_onecomp[signif_genera,"baseMean"]
 }
 
-
+save(dds_res2, file="dds_res2.rda")
 ```
 
 ## Deseq
@@ -205,6 +207,8 @@ output_LogFC_7 <- output_LogFC
 output_FDR_7 <- output_FDR
 
 output_baseMean_7 <- output_baseMean
+
+save(dds_res3, file="dds_res3.rda")
 
 ```
 
@@ -312,6 +316,32 @@ complete_data_filtered <- complete_data %>%
 
 ```
 
+## Prepare data for a pheatmap for better representation
+
+```{r cars,fig.height=10, fig.width=10}
+
+pheat <- complete_data_filtered %>%
+  select(Var1, Var2, Log2FC) %>%
+  spread(key = Var2, value = Log2FC) %>%
+  column_to_rownames("Var1")
+
+data <- complete_data_filtered
+
+p_values <- complete_data_filtered %>%
+  select(Var1, Var2, value) %>%
+  spread(key = Var2, value = value) %>%
+  column_to_rownames("Var1")
+  
+signif <- complete_data_filtered %>%
+  mutate(., color =
+           case_when(color == 'NS' ~ "",
+                     color == 'Trend' ~ "*",
+                     color == 'Signif' ~ "***")) %>%
+  select(Var1, Var2, color) %>%
+  spread(key = Var2, value = color) %>%
+  column_to_rownames("Var1")
+
+```
 
 # Plot the heatmap
 

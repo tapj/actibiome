@@ -335,13 +335,14 @@ merge(mean_rank, sd_rank, by=c("method","k")) %>%
     geom_line(aes(x=k, y=mean_rank, group=method, color =method)) +
   #geom_line(aes(x=k, y=mean_rank))
     #geom_line(aes(x=k, y=mean_rank + (1.96*(sd_rank/sqrt(30))), group=method, color =method, linetype=2)) +
-    geom_ribbon(aes(x=k, ymin = mean_rank - (1.96*(sd_rank/sqrt(30))), ymax = mean_rank + (1.96*(sd_rank/sqrt(30))),  group=method, fill =method), alpha = 0.2) +
+    geom_ribbon(aes(x=k, ymin = mean_rank - (1.96*(sd_rank/sqrt(5))), ymax = mean_rank + (1.96*(sd_rank/sqrt(5))),  group=method, fill =method), alpha = 0.2) +
   #geom_ribbon(aes(x=k, ymin = mean_rank - (1.96*(sd_rank/sqrt(30))), ymax = mean_rank + (1.96*(sd_rank/sqrt(30)))), alpha = 0.2) +
     theme_classic() +
     scale_x_discrete("Number of Dirichlet component",limits = as.character(1:number_of_clusters)) +
-    scale_color_brewer("criteria",type="qual") +
-    scale_fill_brewer("criteria",type="qual") +
-    ylab("model optimum average rank") + guides(color=FALSE,fill=FALSE) -> criteria_dmm_plot
+    scale_fill_brewer("",type="qual", label="BIC\n(mean [CI 95%])") +
+    scale_color_brewer("",type="qual", label="BIC\n(mean [CI 95%])") +
+    ylab("model optimum average rank") +
+    theme(legend.position = c(0.8, 0.2)) -> criteria_dmm_plot
 
 save(criteria_dmm_plot, file="criteria_dmm_plot.rda")
 
@@ -488,7 +489,6 @@ nb_clusters
 ## Laplace check
 
 ```{r,message=F,warning=F}
-
 ## sample component assignments
 
 model <- apply(mixture(best), 1, which.max)
@@ -516,13 +516,19 @@ enterotype <- enterotype %>%
 name_file <- "enterotype_DMM"
 
 write.csv(enterotype, file="enterotype_DMM", row.names=TRUE, col.names=TRUE, quote=FALSE)
+```
 
+
+# bifidotype desc stat
+
+## import bifidotype
+```{r,message=F,warning=F}
 enterotype <- fread("enterotype_DMM") %>%
   column_to_rownames("V1")
 
 enterotype$bifidotype <- as.character(enterotype$bifidotype)
-
 ```
+
 
 
 ## Clusters distributions
@@ -537,15 +543,17 @@ distribution <- enterotype %>%
 
 distribution$bifidotype <- as.character(distribution$bifidotype)
 
-distr_clusters <- ggplot(distribution, aes(x = bifidotype, y = Freq, fill= bifidotype)) +  # Plot with values on top
+distribution$labels <- paste0("Partition ",as.character(distribution$bifidotype),"\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","no_Bif"))
+
+distr_clusters <- ggplot(distribution, aes(x = labels, y = Freq, fill= labels)) +  # Plot with values on top
   geom_bar(stat = "identity") +
   geom_text(aes(label = Freq, vjust=1.5),
             size=5,
             color="white") +
-  labs( y = "Subject count", x = "Bifidobacterium based gut microbiome partitions") +
+  labs( y = "Subject count", x = expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions")) ) +
   theme_classic() +
   scale_fill_brewer("", type="qual", palette=2) +
-  scale_x_discrete(limits = as.character(1:max(distribution$bifidotype))) +
+  #scale_x_discrete(limits = as.character(1:max(distribution$bifidotype))) +
   ylab("number of individuals") +
   guides(fill=FALSE) + annotate("text", x=7, y=700, label="(undetected\nbifid\npartition)", size=4)
 
@@ -584,6 +592,10 @@ otu <- data.frame(phy_relative@otu_table)
 
 ```{r,message=F,warning=F,fig.width=9, fig.height=9}
 
+
+
+
+
 matrix_int <- fitted(best, scale= TRUE) %>%
   log10(.) %>%
   round(.,2)
@@ -592,7 +604,10 @@ matrix_int <- round(matrix_int,2)
 
 ## replace col and rownames
 
-colnames(matrix_int) <- paste("partitions ",1:ncol(matrix_int))
+colnames(matrix_int) <- paste("Partition ",1:ncol(matrix_int))
+
+colnames(matrix_int) <- paste0(paste("Partition ",1:ncol(matrix_int)), "\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat"))
+
 
 rownames(matrix_int) <- gsub("Bifidobacterium","B. ",rownames(matrix_int))
 
@@ -625,18 +640,34 @@ heatmap.2(matrix_int,
 #matrix_int %>%
   #pheatmap::pheatmap(show_colnames = FALSE, main = "eggnog annotations")
 
+write.csv(bif_DMM_alpha_weight_df$carpet, file="dmm_alpha_weight_log10.csv")
 
 bif_DMM_alpha_weight_df$carpet %>%
   reshape2::melt() %>%
   ggplot() + geom_tile(aes(x=Var1,y=Var2,fill=10^value)) +
   geom_text(aes(x=Var1,y=Var2,label=round(10^value,4))) +
   scale_fill_viridis_c("DMM model\nalpha weights", trans="log10") +
-  xlab("Bifidobacterium based gut microbiome partitions") + 
+  xlab(expression(paste(italic("Bifidobacterium"), "based gut microbiome partitions"))) + 
   ylab(expression(paste(italic("Bifidobacterium"), " species"))) +
   theme_classic() +
   theme(axis.text.y = element_text(face="italic")) -> bif_DMM_alpha_weight_plot
  
 bif_DMM_alpha_weight_plot
+
+
+bif_DMM_alpha_weight_df$carpet %>%
+  reshape2::melt() %>%
+  mutate(value=ifelse(value< -5,NA,value)) %>%
+  ggplot() + geom_tile(aes(x=Var1,y=Var2,fill=10^value)) +
+  #geom_text(aes(x=Var1,y=Var2,label=round(10^value,4))) +
+  scale_fill_viridis_c("DMM model\nalpha param.", trans="log10") +
+  xlab(expression(paste(italic("Bifidobacterium"), "based gut microbiome partitions"))) + 
+  ylab(expression(paste(italic("Bifidobacterium"), " species"))) +
+  theme_classic() +
+  theme(axis.text.y = element_text(face="italic")) -> bif_DMM_alpha_weight_plot
+
+bif_DMM_alpha_weight_plot
+
 
 ```
 
@@ -644,7 +675,7 @@ bif_DMM_alpha_weight_plot
 
 
 
-```{r fig.height=5, fig.width=14}
+```{r fig.height=5, fig.width=15}
 library(patchwork)
 
 ((criteria_dmm_plot /
@@ -880,12 +911,13 @@ p_relative_abundance <- ggplot(sam_data, aes(x = bifidotype,
   scale_fill_brewer(type="qual", palette=2) +
   #labs(x = "Bifidotype", y = NULL, title = "Relative abundance of Bifidobacterium",fill= "Bifidotype") + 
   #coord_cartesian(ylim=c(0,0.46)) +
-  #scale_x_discrete(limits = as.character(1:max(sam_data$bifidotype))) +
+  scale_x_discrete(limits = as.character(1:max(sam_data$bifidotype)), 
+                   labels = paste0("Partition ",as.character(distribution$bifidotype),"\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","no_Bif"))) +
   stat_compare_means(label.y = 0.45, label.x ="3") +
     theme_classic() +
   theme(legend.position = "none") +
   ylab("Bifidobacterium genus proportion") +
-  xlab("Bifidobacterium based gut microbiome partitions")
+  xlab(expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions")))
   #stat_compare_means(label = "p.signif", method = "wilcox", ref.group = "5", label.y = 0.42)
   
 
@@ -896,6 +928,20 @@ pairwise.wilcox.test(sam_data$bif_rel, sam_data$bifidotype) %>%
   broom::tidy() %>%
   mutate(fdr=p.adjust(p.value, method="fdr")) %>%
   readr::write_tsv(file = "bif_rel_pairwise_wilcox.tsv")
+
+sam_data %>%
+  filter(age_category=="adult") %>%
+pairwise.wilcox.test(.$bif_rel, .$bifidotype, data=.) %>% 
+  broom::tidy() %>%
+  mutate(fdr=p.adjust(p.value, method="fdr")) %>%
+  readr::write_tsv(file = "bif_rel_pairwise_wilcox_adult.tsv")
+
+
+sam_data %>%
+  filter(age_category=="adult") %>%
+  group_by(bifidotype) %>%
+  summarise(median=median(bif_rel), q25=quantile(bif_rel,0.25), q75=quantile(bif_rel,0.75)) %>%
+    readr::write_tsv(file = "bif_rel_adult_median.tsv")
 
 
 ```
@@ -922,6 +968,8 @@ p_diversity <- ggplot(diversity, aes(x = bifidotype,
                        y = Shannon)) +
   geom_boxplot(outlier.shape = NA) +
   theme_classic() +
+  scale_x_discrete(limits = as.character(1:max(sam_data$bifidotype)), 
+                   labels = paste0("Partition ",as.character(distribution$bifidotype),"\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","no_Bif"))) +
   #stat_compare_means(label.y = 4.5, label.x ="3") +
   #labs(x = "Bifidotype", y = "", title = "Shannon diversity",color= "") + 
   #coord_cartesian(ylim=c(0.8,4.5)) +
@@ -937,7 +985,8 @@ p_diversity2 <- ggplot(diversity, aes(x = bifidotype,
   theme_classic() +
   stat_compare_means(label.y = 4.5, label.x ="3") +
   ylab("Alpha-diversity (Shannon)" ) +
-  xlab("Bifidobacterium based gut microbiome partition") +
+  xlab(expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions"))) +
+  scale_x_discrete(labels = paste0("Partition ",as.character(distribution$bifidotype),"\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","no_Bif"))) +
   scale_fill_brewer(type="qual", palette = 2) +
   guides(fill=FALSE)
   #labs(x = "Bifidotype", y = "", title = "Shannon diversity",color= "") + 
@@ -954,12 +1003,35 @@ pairwise.wilcox.test(diversity$Shannon, diversity$bifidotype) %>%
   mutate(fdr=p.adjust(p.value, method="fdr")) %>%
   readr::write_tsv(file = "bif_shannon_pairwise_wilcox.tsv")
 
+phy_diversity %>%
+  rownames_to_column("sample_id") %>%
+  merge(., enterotype, by="sample_id") %>%
+  merge(sam_data, by="sample_id") %>%
+  filter(age_category=="adult") %>%
+pairwise.wilcox.test(.$Shannon, .$bifidotype.x, data=.) %>% 
+  broom::tidy() %>%
+  mutate(fdr=p.adjust(p.value, method="fdr")) %>%
+  readr::write_tsv(file = "bif_shannon_pairwise_wilcox_adult.tsv")
+
+
+
+phy_diversity %>%
+  rownames_to_column("sample_id") %>%
+  merge(., enterotype, by="sample_id") %>%
+  merge(sam_data, by="sample_id") %>%
+  filter(age_category=="adult") %>%
+  group_by(bifidotype.x) %>%
+  summarise(median=median(Shannon), q25=quantile(Shannon,0.25), q75=quantile(Shannon,0.75))  %>%
+    readr::write_tsv(file = "bif_shannon_adult_median.tsv")
+
+
+
 ```
 
 ## Boxplot Shannon
 
 ```{r,message=F,warning=F, fig.width = 10, fig.height = 4}
-figure <- ggarrange(p_relative_abundace, p_diversity,
+figure <- ggarrange(p_relative_abundance, p_diversity,
                     labels = c("A","B"),
                     ncol =2,
                     nrow = 1)
@@ -1007,7 +1079,7 @@ distribution <- function(category, type){
     mutate(category = factor(category, levels=c("newborn","child","schoolage","adult","senior"))) }
   
     p2 <- ggplot(map, aes(x = bifidotype,y=percent, fill = category)) +
-    geom_bar(stat="identity", position=position_dodge()) +
+    geom_bar(stat="identity", position=position_stack()) +
     #geom_text(aes(label = paste0(rows)),vjust=-2, color="black",
     #        position = position_dodge(0.9),
     #        #size=size_geom_text) +
@@ -1021,6 +1093,8 @@ distribution <- function(category, type){
     theme_classic() +
     scale_fill_brewer(type = type) +
     labs(x = "Cluster K", y = "percent", fill = category) +
+      scale_x_discrete(labels=paste0(paste("P",1:7, "\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","No_Bif")))) +
+      theme(legend.position="bottom") +
       #guides(y = "none") +
       ylim(0, 1.2)# + scale_y_continuous("prevalence per partition", label=scales::percent())
   
@@ -1038,36 +1112,87 @@ distribution('westernized', 'qual')
 ```{r,message=F,warning=F, fig.height=4, fig.width = 6}
 
 distr_disease <- distribution('disease', "qual") +
-  labs(x = "Bifidobacterium based gut microbiome partitions", y = "", fill= "disease") +
+  labs(x = expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions")), y = "", fill= "disease") +
   coord_cartesian(ylim=c(0,1.02)) + scale_fill_brewer("Health status", type="qual")
 
 distr_disease
 
 ```
+```{r}
+distr_disease$data %>%
+  mutate(category = ifelse(category=="Control","Control","unhealthy")) %>%
+  group_by(category,bifidotype) %>%
+  summarise(rows=sum(rows)) %>%
+  reshape2::dcast(bifidotype~category, value.var = "rows") %>%
+  tibble::column_to_rownames("bifidotype") %>%
+  .[c(1,4),] %>% chisq.test()
+
+
+
+distr_disease$data %>%
+  mutate(category = ifelse(category=="Control","Control","unhealthy")) %>%
+  group_by(category,bifidotype) %>%
+  summarise(rows=sum(rows)) %>%
+  reshape2::dcast(bifidotype~category, value.var = "rows") %>%
+  tibble::column_to_rownames("bifidotype") %>%
+  .[c(1,4),] %>%
+  as.matrix() %>%
+  #prop.table(2) %>%
+  prop.test()
+
+
+```
+
+
 ## Description des clusters
 
 ```{r,message=F,warning=F, fig.height=4, fig.width = 6}
 
 distr_age <- distribution('age_category', "qual") +
-  labs(x = "Bifidobacterium based gut microbiome partitions",fill= "age category") +
-  coord_cartesian(ylim=c(0,0.95)) +  scale_fill_brewer("Age category", type="div", palette = 7)
+  labs(x = expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions")),fill= "age category") +
+  coord_cartesian(ylim=c(0,1)) +  scale_fill_brewer("Age category", type="div", palette = 7)
 
 
 distr_age 
 
 ```
+
+```{r}
+distr_age$data %>%
+  reshape2::dcast(bifidotype~category, value.var = "rows") %>%
+  tibble::column_to_rownames("bifidotype") %>%
+  as.matrix() %>%
+  #prop.table(1) %>%
+  .[c(1,4),c(1,4)] %>%
+  prop.test()
+
+
+
+```
+
+
 ## Description des clusters
 
 ```{r,message=F,warning=F, fig.height=4, fig.width = 6}
 
 distr_westernized <- distribution('westernized', "qual") +
-  labs(x = "Bifidobacterium based gut microbiome partitions", fill= "westernized") +
+  labs(x = expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions")), fill= "westernized") +
   coord_cartesian(ylim=c(0,1.03)) +  scale_fill_brewer("Westernized\nlifestyle", type="qual", palette = 4)
 
 
 distr_westernized
 
 ```
+```{r}
+distr_westernized$data %>%
+  reshape2::dcast(bifidotype~category, value.var = "rows") %>%
+  tibble::column_to_rownames("bifidotype") %>%
+  as.matrix() %>%
+  prop.table(1) %>%
+  prop.test()
+```
+
+
 
 ## descriptive metadata barplot 
 
@@ -1084,9 +1209,9 @@ figure
 
 ## figure for manuscript
 
-```{r fig.height=5, fig.width=15}
+```{r fig.height=5, fig.width=17}
 
-(distr_age + scale_y_continuous("prevalence per partition", label=scales::percent) |
+(distr_age + scale_y_continuous("prevalence per partition", label=scales::percent, limits = c(0,1)) |
 distr_westernized + scale_y_continuous("prevalence per partition", label=scales::percent, limits = c(0,1)) |
 distr_disease + scale_y_continuous("prevalence per partition", label=scales::percent, limits = c(0,1))) +
   plot_annotation(tag_levels = "A")
@@ -1285,7 +1410,7 @@ ggsave("figures/partitions_bif_studies.pdf")
 ```
 
 
-# sequencing depth vs partitions
+## sequencing depth vs partitions
 
 ```{r}
 
@@ -1299,7 +1424,13 @@ sampleMetadata %>%
   readr::write_tsv(file = "bif_number_reads_wilcox.tsv")
   
 
-
+sampleMetadata %>% 
+  select(number_reads, sample_id) %>% 
+  merge(bifidotypes, by="sample_id") %>% 
+  select(bifidotype, number_reads) %>%
+  group_by(bifidotype)%>%
+  summarise(median=median(number_reads), q25 = quantile(number_reads, 0.25), q75 = quantile(number_reads, 0.75)) %>%
+  readr::write_tsv(file = "bif_number_reads_desc.tsv")
 
 ```
 
