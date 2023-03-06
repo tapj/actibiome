@@ -43,7 +43,6 @@ taxo <- data.frame(TAX)
 
 ```
 
-
 ## On garde les données
 
 ```{r,message=F,warning=F}
@@ -100,8 +99,8 @@ nrow(map)
 ncol(otus)
 
 ```
-Les échantillons et les patients ne sont pas uniques
-On a 20 000 lignes environ
+
+Les échantillons et les patients ne sont pas uniques On a 20 000 lignes environ
 
 ```{r,message=F,warning=F}
 
@@ -141,7 +140,7 @@ Les échantillons et les patients sont uniques
 
 On a 12661 échantillons = patients uniques
 
-# on sélectionne les microbiotes intestinaux seulement
+on sélectionne les microbiotes intestinaux seulement
 
 ```{r,message=F,warning=F}
 
@@ -179,8 +178,9 @@ map$infant_age <- NULL
 
 nrow(map)
 
-
+map %>% pull(PMID) %>% unique %>% length()
 ```
+
 Le dataset a 9515 avec, et 127 variables
 
 ## Preparation des données
@@ -231,7 +231,7 @@ plot <- function(category, title, fill){
               size=5,
               color="black"
               )+
-    labs(x = NULL, y = NULL, title = "", fill= fill) 
+    labs(x = NULL, y = NULL, title = title, fill= fill) 
   
   
   ## si la catégorie est age on change les labels x qui sont mal ordonnés
@@ -245,21 +245,21 @@ plot <- function(category, title, fill){
 
 }
 
-p_age_category <- plot(age_category,'Patients Counts by Age Category', 'Age Category') + scale_x_discrete(limits=c("newborn","child","schoolage","adult","senior"))
+p_age_category <- plot(age_category,'Age\nCategory', 'Age Category') + scale_x_discrete(limits=c("newborn","child","schoolage","adult","senior"))
 
 
 #p_gender <- plot('gender','Patients Counts by Gender', 'Gender')
 
-p_antibiotics_current_use <- plot(antibiotics_current_use,'Patients Counts by Antibiotics Current Use', 'Antibiotics Current Use')
+p_antibiotics_current_use <- plot(antibiotics_current_use,'Antibiotic\nintake', 'Antibiotics Current Use')
 
-p_disease <- plot(disease,'Patients Counts by Health Condition', 'Health Condition')
-p_westernized <- plot(westernized,'Patients Counts by Westernized', 'Westernized')
+p_disease <- plot(disease,'Health\nstatus', 'Health status')
+p_westernized <- plot(westernized,'Westernized\nlifestyle', 'Westernized lifestyle')
 
-figure <- ggarrange(ggarrange(p_disease,p_antibiotics_current_use, ncol = 2, widths = c(1,0.25),
+figure <- ggarrange(ggarrange(p_age_category,p_antibiotics_current_use, ncol = 2, widths = c(1,0.25),
                               #labels = c("Health","Antibiotic use")
                               labels = c("A","B")
                               ),
-                    ggarrange(p_age_category, p_westernized, ncol = 2, widths = c(1,0.5),
+                    ggarrange(p_disease, p_westernized, ncol = 2, widths = c(1,0.5),
                               #labels = c("age category","westernized")
                               labels = c("C","D")
                               ),
@@ -272,8 +272,41 @@ ggsave("figures/metadata_description.pdf")
 
 ```
 
+## supporting table
+
+```{r}
+
+library(gtsummary)
+
+all_table = map %>%
+  select(`Antibiotic intake`=antibiotics_current_use,`Health status`=disease, `Age category` = age_category, `Westernized lifestyle`=westernized) %>%
+  tbl_summary()
 
 
+adult_only_table = map %>%
+  filter(age_category == "adult") %>%
+  select(`Antibiotic intake`=antibiotics_current_use,`Health status`=disease, `Age category` = age_category, `Westernized lifestyle`=westernized) %>%
+  tbl_summary()
+
+no_antibio_only_table = map %>%
+  filter(antibiotics_current_use == "no") %>%
+  select(`Antibiotic intake`=antibiotics_current_use,`Health status`=disease, `Age category` = age_category, `Westernized lifestyle`=westernized) %>%
+  tbl_summary()
+
+no_antibio_and_adult_only_table = map %>%
+  filter(antibiotics_current_use == "no") %>%
+  filter(age_category == "adult") %>%
+  select(`Antibiotic intake`=antibiotics_current_use,`Health status`=disease, `Age category` = age_category, `Westernized lifestyle`=westernized) %>%
+  tbl_summary()
+
+tbl_merge(list(all_table,no_antibio_only_table, no_antibio_and_adult_only_table), tab_spanner = c("**All individuals**",  "**No antibiotic intake**", "**No antibiotic intake and adult only**")) %>% gtsummary::as_gt()
+
+tbl_merge(list(all_table,no_antibio_only_table, no_antibio_and_adult_only_table), tab_spanner = c("**All individuals**",  "**No antibiotic intake**", "**No antibiotic intake and adult only**")) %>% as_hux_xlsx(file="table_recap.xlsx", include = everything(), bold_header_rows = TRUE)
+
+
+
+
+```
 
 ```{r,message=F,warning=F}
 
@@ -309,7 +342,6 @@ map <- merge(map,bifid, by = "sample_id")
 
 ```
 
-
 ## Analyse descriptive
 
 Boxplot antibiotiques
@@ -333,7 +365,7 @@ p <- p + #scale_fill_brewer(palette="Dark2",labels = c("No (4921 adults)", "Yes 
   
   theme_minimal() +
   
-  labs(x = NULL, y = NULL, title = "antibiotic intake") #+ 
+  labs(x = NULL, y = NULL, title = "Antibiotic intake") #+ 
   #coord_cartesian(ylim=c(0,0.3))
 
 p_antibio <- p + stat_compare_means() + theme(legend.position = "none")
@@ -359,13 +391,13 @@ map_save <- map
 
 ```
 
-
 Boxplot western/westernized
+
 ```{r,message=F,warning=F}
 
 map <- map_save
 
-title <- "westernized"
+title <- "Westernized lifestyle"
 #title <- "Relative Abundance of Bifidobacterium"
 
 
@@ -407,9 +439,10 @@ p_westernized
 ```
 
 Boxplot healthy/disease
+
 ```{r,message=F,warning=F, fig.width =6.5}
 
-title <- "disease"
+title <- "Health status"
 
 # on enlève les arthrithis car il y en a que 3
 
@@ -427,11 +460,23 @@ p_disease <- p + theme(legend.position = "none")
 p_disease
 
 ```
+```{r}
+p_disease$data %>%
+  select(reads_bifid, disease) %>%
+  group_by(disease) %>%
+  summarise(median=median(reads_bifid), max=max(reads_bifid), min=min(reads_bifid), q25=quantile(reads_bifid,0.25), q75=quantile(reads_bifid,0.75))
+
+
+
+```
+
+
 
 Distribution of Bifidobactérium en fonction de l'âge (seulement contrôles)
+
 ```{r,message=F,warning=F}
 
-title <- "age category"
+title <- "Age category"
 
 # on sélectionne que les contrôles (sujets sains) pour éviter des biais
 
@@ -474,8 +519,30 @@ p_age
 
 ```
 
+
+```{r}
+
+map_age <- map %>%
+  filter(antibiotics_current_use =="no")
+
+map_age$age_category <- factor(map_age$age_category, levels=c("newborn","child","schoolage","adult","senior"))
+
+
+map_age %>% 
+  select(reads_bifid, age_category) %>%
+  group_by(age_category) %>%
+  summarise(median=median(reads_bifid), max=max(reads_bifid), min=min(reads_bifid), q25=quantile(reads_bifid,0.25), q75=quantile(reads_bifid,0.75))
+  
+
+
+
+```
+
+
+
 Plot which groups the 4 last ones
-```{r,message=F,warning=F, fig.height = 10, fig.width = 10}
+
+```{r,message=F,warning=F, fig.height = 8, fig.width = 10}
 
 figure <- ggarrange( p_antibio, p_age, p_westernized, p_disease,
                     labels = c("A","B","C","D"),
@@ -488,7 +555,6 @@ annotate_figure(figure, top = text_grob("Bifidobacterium relative abundance", si
 ggsave("figures/bif_rel_abund_metadata.pdf")
 
 ```
-
 
 ```{r,message=F,warning=F}
 
@@ -510,4 +576,3 @@ p <- p + scale_fill_brewer(palette="Dark2") +
 p
   
 ```
-

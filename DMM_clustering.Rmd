@@ -167,7 +167,7 @@ sample_low_reads <- names(which(rowSums(count_raw) <= 500))
 count <- count_raw %>%
   as.data.frame(.) %>%
   filter_all(., any_vars(. != 0))
-
+nrow(count)
 
 
 ## select ppl with 0 bifid, they are selected as a no bifid cluster
@@ -504,10 +504,14 @@ enterotype <- enterotype %>%
 
 ## add no bifid cluster as cluster 7 to enterotype
 
-no_bifid_ <- no_bifid %>%
-  rownames_to_column("sample_id") %>%
-  select(sample_id) %>%
-  mutate(bifidotype = rep(max(enterotype$bifidotype) +1,nrow(.)))
+ no_bifid_ <- no_bifid %>%
+   rownames_to_column("sample_id") %>%
+   select(sample_id) %>%
+   mutate(bifidotype = rep(max(enterotype$bifidotype) +1,nrow(.)))
+
+
+#no_bifid_ = data.frame(sample_id=sample_low_reads, bifidotype = rep(max(enterotype$bifidotype) +1,length(sample_low_reads)))
+
 
 # rbind no bifid to enterotype
 enterotype <- enterotype %>%
@@ -675,7 +679,7 @@ bif_DMM_alpha_weight_plot
 
 
 
-```{r fig.height=5, fig.width=15}
+```{r fig.height=6, fig.width=15}
 library(patchwork)
 
 ((criteria_dmm_plot /
@@ -1402,7 +1406,8 @@ sampleMetadata %>%
   theme_classic() +
   scale_y_continuous("% of individuals",labels=scales::percent) +
   xlab("Bifidobacterium-based gut microbiome partitions") +
-  scale_fill_brewer("", type="qual", palette = 3)
+  scale_fill_brewer("", type="qual", palette = 3) +
+  scale_x_discrete(labels=paste0(paste("P",1:7, "\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","No_Bif"))))
   
 
 ggsave("figures/partitions_bif_studies.pdf")
@@ -1436,6 +1441,19 @@ sampleMetadata %>%
 
 
 
+## bifidotypes by countries
+
+
+```{r}
+
+
+merge(map,enterotype, by="sample_id") %>% 
+  select(bifidotype, country, disease, westernized, age_category) %>% 
+  tbl_summary(by=bifidotype) %>%
+  as_hux_xlsx(file="bifidotypes_table_demo.xlsx")
+
+
+```
 
 
 
