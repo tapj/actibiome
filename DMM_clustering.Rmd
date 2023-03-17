@@ -1082,6 +1082,26 @@ distribution <- function(category, type){
   map <- map %>%
     mutate(category = factor(category, levels=c("newborn","child","schoolage","adult","senior"))) }
   
+  if(category!="age_category") {
+    
+    map <- phy@sam_data %>%
+    data.frame(.) %>%
+    rownames_to_column("sample_id") %>%
+    merge(., enterotype, by="sample_id") %>%
+    filter(age_category == "adult") %>%  
+    select(bifidotype,all_of(category)) %>%
+    group_by_all(.) %>%
+    summarise(rows = n(), .groups = 'drop') %>%
+    group_by_at('bifidotype') %>%
+    mutate(percent = rows/sum(rows)) %>%
+    dplyr::rename(., 'category' = category)
+    
+    
+    
+  }
+  
+  
+  
     p2 <- ggplot(map, aes(x = bifidotype,y=percent, fill = category)) +
     geom_bar(stat="identity", position=position_stack()) +
     #geom_text(aes(label = paste0(rows)),vjust=-2, color="black",
@@ -1224,6 +1244,46 @@ ggsave("figure_distributions.pdf")
 
 ```
 
+
+```{r fig.height=5, fig.width=15}
+bifidotype_vs_metadata_summary = rbind(
+distr_age$data %>%
+  reshape2::dcast(category~bifidotype, value.var = "rows", fill=0) %>%
+  mutate(factor="age category"),
+
+distr_westernized$data %>%
+  reshape2::dcast(category~bifidotype, value.var = "rows", fill=0) %>%
+   mutate(factor="westernized lifestyle"),
+
+distr_disease$data %>%
+  reshape2::dcast(category~bifidotype, value.var = "rows", fill=0) %>%
+  mutate(factor="health status")
+
+)
+  
+  colnames(bifidotype_vs_metadata_summary )= c("category",paste0(paste("P",1:7, "\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","No_Bif"))),"factor")
+
+  
+  bifidotype_vs_metadata_summary %>% write.csv2(file="bifidotype_vs_metadata_summary.csv")
+
+  
+  bifidotype_vs_metadata_summary %>%
+    reshape2::melt() %>%
+    ggplot + geom_bar(aes(x=variable,y=value,fill=category), stat="identity") + 
+    facet_grid(.~factor, scale="free") +
+    coord_flip() +
+    theme_classic() +
+    labs(x = expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions")), y ="number of individuals") +
+    scale_fill_manual("",aesthetics = "fill", values = c(RColorBrewer::brewer.pal(5,"RdYlBu"),
+                                                      RColorBrewer::brewer.pal(3,"Pastel1")[-3],
+                                                      RColorBrewer::brewer.pal(7,"Accent")
+                                                      ))
+
+
+      
+    
+  
+```
 
 
 ## table de contingence enterotypes * bifidotypes
