@@ -343,7 +343,8 @@ figure <- ggarrange(heat_age, heat_western,  heat_disease,
 annotate_figure(figure, top = text_grob("Bifidobacterium species prevalence", size = 18))
 #figure
 
-ggsave("figures/heatmap_prevalence.pdf")
+ggsave("figures/figureS3_heatmap_prevalence.pdf")
+ggsave("figures/figureS3_heatmap_prevalence.jpg")
 
 ```
 ```{r}

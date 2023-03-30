@@ -665,7 +665,7 @@ bif_DMM_alpha_weight_df$carpet %>%
   ggplot() + geom_tile(aes(x=Var1,y=Var2,fill=10^value)) +
   #geom_text(aes(x=Var1,y=Var2,label=round(10^value,4))) +
   scale_fill_viridis_c("DMM model\nalpha param.", trans="log10") +
-  xlab(expression(paste(italic("Bifidobacterium"), "based gut microbiome partitions"))) + 
+  xlab(expression(paste(italic("Bifidobacterium"), " based gut microbiome partitions"))) + 
   ylab(expression(paste(italic("Bifidobacterium"), " species"))) +
   theme_classic() +
   theme(axis.text.y = element_text(face="italic")) -> bif_DMM_alpha_weight_plot
@@ -1240,7 +1240,7 @@ distr_westernized + scale_y_continuous("prevalence per partition", label=scales:
 distr_disease + scale_y_continuous("prevalence per partition", label=scales::percent, limits = c(0,1))) +
   plot_annotation(tag_levels = "A")
 
-ggsave("figure_distributions.pdf")
+ggsave("figures/figure2_distributions.pdf")
 
 ```
 
@@ -1470,7 +1470,8 @@ sampleMetadata %>%
   scale_x_discrete(labels=paste0(paste("P",1:7, "\n", c("ado_lon","ado_lon_bif","lon_pse","lon","ado_pse","lon_ado_cat","No_Bif"))))
   
 
-ggsave("figures/partitions_bif_studies.pdf")
+ggsave("figures/figureS4_partitions_bif_studies.pdf")
+ggsave("figures/figureS4_partitions_bif_studies.jpg")
 
 ```
 

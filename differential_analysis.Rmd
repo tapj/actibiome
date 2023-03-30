@@ -385,7 +385,7 @@ deseq2_heatmap_plot
 
 ((p_relative_abundance/p_diversity2)|deseq2_heatmap_plot) + plot_annotation(tag_levels = "A")
 
-ggsave(filename = "deseq_abund_alpha_bif_partition.pdf")
+ggsave(filename = "figures/figure3_deseq_abund_alpha_bif_partition.pdf")
 
 ```
 

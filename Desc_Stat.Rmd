@@ -206,7 +206,7 @@ save(otus, tax, map, file="study_after_QC.rda")
 
 ## Descriptif des données
 
-```{r,message=F,warning=F fig.height=9, fig.width=16, warning=FALSE, r,message=F}
+```{r,message=F,warning=F, fig.height=7, fig.width=10, warning=FALSE, r,message=F}
 
 library(gridExtra)
 
@@ -268,7 +268,8 @@ figure <- ggarrange(ggarrange(p_age_category,p_antibiotics_current_use, ncol = 2
 
 figure
 
-ggsave("figures/metadata_description.pdf")
+ggsave("figures/figureS1_metadata_description.pdf")
+ggsave("figures/figureS1_metadata_description.jpg")
 
 ```
 
@@ -552,7 +553,8 @@ figure <- ggarrange( p_antibio, p_age, p_westernized, p_disease,
 annotate_figure(figure, top = text_grob("Bifidobacterium relative abundance", size = 18))
 #figure
 
-ggsave("figures/bif_rel_abund_metadata.pdf")
+ggsave("figures/figureS2_bif_rel_abund_metadata.pdf")
+ggsave("figures/figureS2_bif_rel_abund_metadata.jpg")
 
 ```
 
